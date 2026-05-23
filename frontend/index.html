@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Explore and document your family lineage in an interactive tree." />
+    <meta name="theme-color" content="#2d6a4f" />
+    <title>Family Tree</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="error-log" style="position: absolute; top:0; left:0; z-index: 9999; background: red; color: white; padding: 10px; font-family: monospace; display: none; white-space: pre-wrap; max-width: 100vw; max-height: 100vh; overflow: auto;"></div>
+    <script>
+      window.addEventListener('error', function(event) {
+        var el = document.getElementById('error-log');
+        el.style.display = 'block';
+        el.innerText += '\n[ERROR] ' + event.message + '\n' + (event.error ? event.error.stack : '');
+      });
+      window.addEventListener('unhandledrejection', function(event) {
+        var el = document.getElementById('error-log');
+        el.style.display = 'block';
+        el.innerText += '\n[PROMISE] ' + event.reason;
+      });
+    </script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
