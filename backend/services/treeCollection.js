@@ -14,35 +14,66 @@ function uniqueObjectIds(ids) {
 }
 
 /**
- * Collect member ids around a focus member: focus, parents, spouses, siblings,
- * and descendants up to `depth` generations (default 2 = children + grandchildren).
+ * Collect member ids for the full family context of a focus member:
+ *   - The focus member themselves and their spouses
+ *   - ALL ancestors (parents, grandparents, … up to the root) with no depth limit,
+ *     plus each ancestor's spouses and siblings at every generation level
+ *   - All descendants downward up to `depth` generations, including their spouses
+ *
+ * @param {Object} focusMember  - Mongoose/lean document of the focus member
+ * @param {number} depth        - Maximum downward generations (default 2)
+ * @returns {Promise<Array>}    - Deduplicated array of ObjectId-like values
  */
 async function collectTreeMemberIds(focusMember, depth = 2) {
   const focusId = String(focusMember._id);
   const ids = new Set([focusId]);
 
-  for (const parentId of focusMember.parents || []) {
-    ids.add(String(parentId));
-  }
-  for (const spouseId of focusMember.spouses || []) {
-    ids.add(String(spouseId));
-  }
+  // Always include the focus member's own spouses
+  (focusMember.spouses || []).forEach((s) => ids.add(String(s)));
 
-  if (focusMember.parents?.length) {
-    const siblings = await Member.find({
-      parents: { $in: focusMember.parents },
-      _id: { $ne: focusMember._id },
-    })
-      .select('_id')
-      .lean();
-    siblings.forEach((s) => ids.add(String(s._id)));
+  // ── Upward BFS: ancestors, their spouses, and siblings at every level ──
+  // Start from the focus member's direct parents and walk upward until there
+  // are no more parents to follow. At each level we also pull in:
+  //   • the ancestor's spouses
+  //   • the ancestor's siblings (other children sharing the same parents)
+  let ancestorFrontier = (focusMember.parents || []).map(String);
 
-    const parentDocs = await Member.find({ _id: { $in: focusMember.parents } })
-      .select('spouses')
+  while (ancestorFrontier.length > 0) {
+    // Add this generation of ancestors to the collected set
+    ancestorFrontier.forEach((id) => ids.add(id));
+
+    // Fetch full docs for this ancestor generation
+    const ancestorDocs = await Member.find({ _id: { $in: ancestorFrontier } })
+      .select('parents spouses')
       .lean();
-    parentDocs.forEach((p) => {
-      (p.spouses || []).forEach((s) => ids.add(String(s)));
-    });
+
+    // Collect every unique parent-of-ancestor id (next frontier up)
+    const grandparentIds = [];
+    for (const anc of ancestorDocs) {
+      // Add the ancestor's spouses
+      (anc.spouses || []).forEach((s) => ids.add(String(s)));
+
+      // Collect their parents for the next BFS level
+      (anc.parents || []).forEach((p) => grandparentIds.push(String(p)));
+    }
+
+    // Add siblings of this ancestor generation:
+    // siblings = other children of any grandparent who share a parent with this ancestor
+    const allGrandparentIds = [...new Set(grandparentIds)];
+    if (allGrandparentIds.length > 0) {
+      const siblings = await Member.find({
+        parents: { $in: allGrandparentIds },
+        _id: { $nin: ancestorFrontier },
+      })
+        .select('_id')
+        .lean();
+      siblings.forEach((s) => ids.add(String(s._id)));
+    }
+
+    // Next BFS level = grandparents not yet visited
+    ancestorFrontier = allGrandparentIds.filter((id) => !ids.has(id));
+    // Mark grandparents as seen before next iteration to avoid re-processing
+    allGrandparentIds.forEach((id) => ids.add(id));
   }
 
   let frontier = (focusMember.children || []).map(String);

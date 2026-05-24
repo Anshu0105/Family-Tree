@@ -219,7 +219,7 @@ async function getTreeMembers(focusId, depth = 2) {
     throw httpError('Member not found', 404);
   }
 
-  const parsedDepth = Math.max(0, Math.min(10, parseInt(depth, 10) || 2));
+  const parsedDepth = Math.max(0, parseInt(depth, 10) || 99);
   const dedupedIds = await collectTreeMemberIds(activeMember, parsedDepth);
   return Member.find({ _id: { $in: dedupedIds } }).lean();
 }
