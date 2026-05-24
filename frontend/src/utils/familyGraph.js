@@ -188,7 +188,7 @@ function assignGenerations(nodes, edges) {
 export function getLayoutedElements(nodes, edges, direction = 'TB') {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
-  dagreGraph.setGraph({ rankdir: direction, nodesep: 100, edgesep: 20, ranksep: 80 });
+  dagreGraph.setGraph({ rankdir: direction, nodesep: 120, edgesep: 20, ranksep: 80 });
 
   nodes.forEach((node) => {
     dagreGraph.setNode(node.id, {
@@ -283,6 +283,69 @@ export function getLayoutedElements(nodes, edges, direction = 'TB') {
         const childNode = finalNodes.find((n) => n.id === ce.target);
         if (childNode) childNode.position.x += dx;
       });
+    }
+  });
+
+  // ── Horizontal collision-resolution pass ──────────────────────────────────
+  // After all Y positions are final (generation-flattened + spouse-aligned),
+  // walk every horizontal row and enforce a minimum center-to-center spacing
+  // of MIN_SPACING px. Then re-center each child row around its parent
+  // marriage node so the subtree stays visually balanced.
+  const MIN_SPACING = 110; // minimum pixels between node centers
+
+  // 1. Group nodes by Y row, bucketed to nearest 10 px to absorb float drift
+  const yRows = new Map(); // bucketY -> [node]
+  finalNodes.forEach((node) => {
+    const bucketY = Math.round(node.position.y / 10) * 10;
+    if (!yRows.has(bucketY)) yRows.set(bucketY, []);
+    yRows.get(bucketY).push(node);
+  });
+
+  // 2. Build a quick lookup: nodeId -> node (operates on the live finalNodes refs)
+  const nodeById = new Map(finalNodes.map((n) => [n.id, n]));
+
+  // 3. For each row, resolve overlaps then optionally re-center under parent
+  yRows.forEach((rowNodes) => {
+    if (rowNodes.length < 2) return;
+
+    // Sort by current X ascending
+    rowNodes.sort((a, b) => a.position.x - b.position.x);
+
+    // Forward pass: push rightward if too close
+    for (let i = 1; i < rowNodes.length; i++) {
+      const gap = rowNodes[i].position.x - rowNodes[i - 1].position.x;
+      if (gap < MIN_SPACING) {
+        rowNodes[i].position.x = rowNodes[i - 1].position.x + MIN_SPACING;
+      }
+    }
+
+    // 4. Re-center this row around its parent marriage node (if one exists).
+    // A row is a "child row" when at least one of its nodes is the target of
+    // a parent edge whose source is a marriage node.
+    let parentMarriageNode = null;
+    for (const node of rowNodes) {
+      const incomingParentEdge = edges.find(
+        (e) => e.target === node.id && e.data?.kind === 'parent' && e.source.startsWith('marriage-')
+      );
+      if (incomingParentEdge) {
+        parentMarriageNode = nodeById.get(incomingParentEdge.source);
+        break;
+      }
+    }
+
+    if (parentMarriageNode) {
+      // The marriage heart node center X = position.x + half of heart width (12)
+      const parentCenterX = parentMarriageNode.position.x + 12;
+
+      // Current row center = midpoint between leftmost and rightmost node centers
+      const rowLeftX  = rowNodes[0].position.x;
+      const rowRightX = rowNodes[rowNodes.length - 1].position.x;
+      const rowCenterX = (rowLeftX + rowRightX) / 2;
+
+      const shift = parentCenterX - rowCenterX;
+      if (Math.abs(shift) > 1) {
+        rowNodes.forEach((n) => { n.position.x += shift; });
+      }
     }
   });
 
