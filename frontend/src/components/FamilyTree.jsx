@@ -18,7 +18,6 @@ import { buildFamilyGraph, getLayoutedElements } from '../utils/familyGraph';
 import {
   Home,
   LayoutGrid,
-  Save,
   Download,
   TreePine,
   Sprout,
@@ -332,16 +331,6 @@ function FamilyTreeCanvas({ onNodeClick, refreshKey }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [isEmpty, loading, fetchAllMembers]);
 
-  const handleSaveTree = async () => {
-    try {
-      const payload = nodes.map(n => ({ id: n.id, type: n.type, position: n.position }));
-      await axios.put(`${API_BASE}/positions/save`, { nodes: payload });
-      showToast('Layout positions saved');
-    } catch (e) {
-      console.error('Save failed', e);
-      showToast('Could not save positions', 'error');
-    }
-  };
 
   const handleDownload = useCallback(() => {
     if (reactFlowWrapper.current === null) return;
@@ -359,9 +348,6 @@ function FamilyTreeCanvas({ onNodeClick, refreshKey }) {
       });
   }, [showToast]);
 
-  const onNodeDragStop = useCallback((event, node) => {
-    setNodes((ns) => ns.map((n) => (n.id === node.id ? node : n)));
-  }, [setNodes]);
 
   if (error && isEmpty) {
     return (
@@ -452,7 +438,7 @@ function FamilyTreeCanvas({ onNodeClick, refreshKey }) {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onNodeDragStop={onNodeDragStop}
+        onNodeDragStop={undefined}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onNodeClick={handleNodeSelect}
@@ -463,6 +449,7 @@ function FamilyTreeCanvas({ onNodeClick, refreshKey }) {
         minZoom={0.25}
         maxZoom={1.5}
         proOptions={{ hideAttribution: true }}
+        nodesDraggable={false}
         className={loading ? 'react-flow-loading' : ''}
       >
         <Panel position="top-left" className={`global-toolbar ${toolbarOpen ? 'expanded' : 'collapsed'}`}>
@@ -557,14 +544,10 @@ function FamilyTreeCanvas({ onNodeClick, refreshKey }) {
             </div>
             <div className="toolbar-section-label">Export</div>
             <div className="toolbar-actions">
-              <button className="toolbar-btn toolbar-btn-primary" onClick={handleSaveTree} type="button">
-                <Save size={16} /> Save positions
-              </button>
               <button className="toolbar-btn" onClick={handleDownload} type="button">
                 <Download size={16} /> Download image
               </button>
             </div>
-            <p className="toolbar-hint">Drag nodes to adjust layout, then save.</p>
           </div>
         </Panel>
         <Panel position="bottom-left" className="tree-legend">

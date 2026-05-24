@@ -114,12 +114,12 @@ export function buildFamilyGraph(members, focusId, callbacks = {}) {
 export function getLayoutedElements(nodes, edges, direction = 'TB') {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
-  dagreGraph.setGraph({ rankdir: direction, nodesep: 120, edgesep: 40, ranksep: 180 });
+  dagreGraph.setGraph({ rankdir: direction, nodesep: 100, edgesep: 20, ranksep: 80 });
 
   nodes.forEach((node) => {
     dagreGraph.setNode(node.id, {
-      width: node.type === 'marriage' ? 8 : 220,
-      height: node.type === 'marriage' ? 8 : 120,
+      width: node.type === 'marriage' ? 24 : 80,
+      height: node.type === 'marriage' ? 24 : 100,
     });
   });
 
@@ -138,8 +138,8 @@ export function getLayoutedElements(nodes, edges, direction = 'TB') {
 
   const newNodes = nodes.map((node) => {
     const nodeWithPos = dagreGraph.node(node.id);
-    const width = node.type === 'marriage' ? 8 : 220;
-    const height = node.type === 'marriage' ? 8 : 120;
+    const width  = node.type === 'marriage' ? 24 : 80;
+    const height = node.type === 'marriage' ? 24 : 100;
     return {
       ...node,
       position: { x: nodeWithPos.x - width / 2, y: nodeWithPos.y - height / 2 },
@@ -160,24 +160,30 @@ export function getLayoutedElements(nodes, edges, direction = 'TB') {
     const rightNode = finalNodes.find((n) => n.id === marriageMap[marriageId].right);
 
     if (mNode && leftNode && rightNode) {
+      // Keep spouses on the exact same horizontal row
       rightNode.position.y = leftNode.position.y;
-      mNode.position.y = leftNode.position.y + 32;
+
+      // Centre the heart at the avatar's vertical midpoint:
+      //   avatar centre = leftNode.top + 31px (half of 62px avatar inside 3px border)
+      //   heart centre  = mNode.top  + 12px (half of 24px heart node)
+      //   ∴ mNode.top   = leftNode.top + 31 - 12 = leftNode.top + 19
+      mNode.position.y = leftNode.position.y + 19;
 
       const ogMX = mNode.position.x;
-      const leftNodeWidth = 200;
-      const horizontalGap = 60;
+      const leftNodeWidth  = 80;  // member node dagre width
+      const heartWidth     = 24;  // marriage node dagre width
+      const horizontalGap  = 28;  // gap between member edge and heart
 
-      mNode.position.x = leftNode.position.x + leftNodeWidth + horizontalGap;
-      rightNode.position.x = mNode.position.x + horizontalGap;
+      mNode.position.x    = leftNode.position.x + leftNodeWidth + horizontalGap;
+      rightNode.position.x = mNode.position.x + heartWidth + horizontalGap;
 
       const dx = mNode.position.x - ogMX;
 
+      // Shift immediate children to follow the marriage node
       const childrenEdges = edges.filter((e) => e.source === marriageId);
       childrenEdges.forEach((ce) => {
         const childNode = finalNodes.find((n) => n.id === ce.target);
-        if (childNode) {
-          childNode.position.x += dx;
-        }
+        if (childNode) childNode.position.x += dx;
       });
     }
   });

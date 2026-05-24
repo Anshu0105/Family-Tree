@@ -97,164 +97,154 @@ body {
   overflow: hidden;
 }
 
-/* Member nodes */
+/* ── Member nodes (circular avatar card) ──────────────────────────────────── */
 .member-node {
-  border-radius: var(--radius-lg);
-  padding: 14px 16px 12px;
-  min-width: 168px;
-  max-width: 220px;
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
+  cursor: pointer;
+  width: 90px;
+  transition: transform 0.18s ease;
+  overflow: visible;  /* allow quick-add to float outside */
+}
+
+.member-node:hover { transform: translateY(-2px); }
+.member-node.active { z-index: 10; }
+
+/* Avatar ring ─────────────────────────────────────────────────────────────── */
+.node-avatar-ring {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  border: 3px solid;          /* color provided via inline style per gender */
+  padding: 3px;
   background: var(--surface);
-  border: 1.5px solid var(--neutral-border);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s, transform 0.2s;
+  position: relative;
+  flex-shrink: 0;
 }
 
-.member-node.male {
-  background: linear-gradient(180deg, var(--male-bg) 0%, var(--surface) 100%);
-  border-color: var(--male-border);
-}
-.member-node.female {
-  background: linear-gradient(180deg, var(--female-bg) 0%, var(--surface) 100%);
-  border-color: var(--female-border);
-}
-.member-node.neutral {
-  background: var(--neutral-bg);
-  border-color: var(--neutral-border);
-}
-
-.member-node.deceased {
-  background: var(--deceased-bg);
-  border-color: var(--deceased-muted);
-  opacity: 0.92;
-}
-
-.member-node.deceased .name {
-  color: var(--deceased-muted);
-}
-
-.member-node.deceased .member-avatar {
-  background: var(--deceased-muted) !important;
-  filter: grayscale(0.35);
-}
-
-.member-node.deceased:hover {
-  transform: translateY(-1px);
-}
-
-.member-life {
-  text-transform: none;
-  letter-spacing: 0.02em;
-  font-size: 10px;
-}
-
-.member-memorial {
-  position: absolute;
-  top: 8px;
-  left: 10px;
-  font-size: 12px;
-  color: var(--deceased-muted);
-  opacity: 0.7;
-  line-height: 1;
-}
-
-.member-node:hover {
+.member-node:hover .node-avatar-ring {
   box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  transform: scale(1.06);
 }
 
-.member-node.active {
-  box-shadow: 0 0 0 3px var(--accent-ring), var(--shadow-lg);
-  transform: scale(1.03);
-  z-index: 10;
-  border-color: var(--focus-ring);
+.member-node.active .node-avatar-ring {
+  box-shadow: 0 0 0 4px var(--accent-ring), var(--shadow-lg);
+  transform: scale(1.09);
 }
 
-.member-avatar {
-  width: 40px;
-  height: 40px;
+/* Avatar fill */
+.node-avatar-fill {
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  margin-bottom: 8px;
-  border: 2px solid rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+}
+
+.node-avatar-initials {
+  font-size: 17px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.03em;
+  user-select: none;
+  line-height: 1;
+}
+
+/* Deceased dagger */
+.node-dagger {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   box-shadow: var(--shadow-sm);
+  z-index: 2;
 }
 
-.member-node.male .member-avatar {
-  background: var(--male-accent);
-  color: white;
-}
-.member-node.female .member-avatar {
-  background: var(--female-accent);
-  color: white;
-}
-.member-node.neutral .member-avatar {
-  background: var(--text-muted);
-  color: white;
+/* Info block below avatar ─────────────────────────────────────────────────── */
+.node-info {
+  margin-top: 7px;
+  text-align: center;
+  max-width: 110px;
 }
 
-.member-node .name {
+.node-name {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 11px;
   line-height: 1.3;
   color: var(--text);
-  text-align: center;
   word-wrap: break-word;
-  width: 100%;
+  hyphens: auto;
+  margin: 0;
 }
 
-.member-node .nickname {
-  margin-top: 2px;
-  font-size: 11px;
-  color: var(--text-muted);
-  text-align: center;
-}
-
-.member-meta {
-  margin-top: 6px;
-  font-size: 10px;
+.node-years {
+  margin: 3px 0 0;
+  font-size: 9px;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   color: var(--text-faint);
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
+.member-node.deceased .node-avatar-ring {
+  opacity: 0.88;
+}
+.member-node.deceased .node-name {
+  color: var(--text-faint);
+}
+
+/* Quick-add buttons — float below node when active ────────────────────────── */
 .quick-add-container {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(42, 35, 24, 0.08);
-  width: 100%;
+  gap: 4px;
+  padding: 7px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 30;
+  width: 142px;
+  white-space: nowrap;
 }
 
 .quick-btn {
-  background: var(--surface);
+  background: var(--surface-muted);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 6px 8px;
+  padding: 5px 7px;
   font-size: 10px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition: background 0.13s, border-color 0.13s, color 0.13s;
   color: var(--text-muted);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
   font-family: inherit;
 }
 
@@ -264,25 +254,24 @@ body {
   color: var(--accent);
 }
 
-.quick-btn svg {
-  flex-shrink: 0;
-  opacity: 0.85;
-}
+.quick-btn svg { flex-shrink: 0; opacity: 0.85; }
 
+/* Node controls (edit / delete) ───────────────────────────────────────────── */
 .node-controls {
   position: absolute;
   top: -10px;
-  right: -10px;
+  right: -22px;
   display: flex;
   gap: 2px;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.2s;
+  transition: opacity 0.18s;
   background: var(--surface);
   padding: 3px;
   border-radius: 999px;
   box-shadow: var(--shadow-md);
   border: 1px solid var(--border);
+  z-index: 20;
 }
 
 .member-node:hover .node-controls,
@@ -295,7 +284,7 @@ body {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 6px;
+  padding: 5px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -314,7 +303,7 @@ body {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
-.edit-btn:hover { color: #b45309; background: #fffbeb; }
+.edit-btn:hover   { color: #b45309; background: #fffbeb; }
 .delete-btn:hover { color: var(--danger); background: var(--danger-soft); }
 
 /* App chrome */
@@ -711,21 +700,31 @@ body {
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 16' fill='none'%3E%3Cpath d='M2 8 C12 12 20 4 30 8' stroke='%23a67c52' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
-.marriage-junction-minimal {
-  width: 8px;
-  height: 8px;
-  opacity: 0;
+/* ── Marriage heart node ──────────────────────────────────────────────────── */
+.marriage-heart-node {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: visible;
   pointer-events: none;
 }
 
-.marriage-junction-minimal .react-flow__handle {
-  opacity: 0;
-  width: 4px;
-  height: 4px;
-  min-width: 0;
-  min-height: 0;
-  border: none;
-  background: transparent;
+.marriage-heart-icon {
+  font-size: 15px;
+  color: #ef4444;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  /* beige background erases the spouse edge behind the heart */
+  background: var(--bg);
+  box-shadow: 0 0 0 3px var(--bg);
 }
 
 /* Smooth Bézier family edges */
