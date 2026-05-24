@@ -15,7 +15,8 @@ const memberSchema = new mongoose.Schema({
     marriageDate: { type: String, default: '' },
     qualification: { type: String, default: '' },
     profession: { type: String, default: '' },
-    dateOfDeath: { type: String, default: '' }
+    dateOfDeath: { type: String, default: '' },
+    bloodGroup: { type: String, default: '' }
   },
   position: {
     x: { type: Number, default: 0 },

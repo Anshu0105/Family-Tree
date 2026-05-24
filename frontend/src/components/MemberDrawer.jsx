@@ -32,7 +32,8 @@ const EMPTY_FORM = {
     marriageDate: '',
     qualification: '',
     profession: '',
-    dateOfDeath: ''
+    dateOfDeath: '',
+    bloodGroup: ''
   }
 };
 
@@ -49,7 +50,8 @@ function memberToForm(member) {
       marriageDate: member.details?.marriageDate || '',
       qualification: member.details?.qualification || '',
       profession: member.details?.profession || '',
-      dateOfDeath: member.details?.dateOfDeath || ''
+      dateOfDeath: member.details?.dateOfDeath || '',
+      bloodGroup: member.details?.bloodGroup || ''
     }
   };
 }
@@ -299,6 +301,12 @@ export default function MemberDrawer({ member, isOpen, onClose, onUpdate }) {
                 </div>
                 <div className="form-row">
                   <div className="form-group">
+                    <label htmlFor="bloodGroup">Blood Group</label>
+                    <input id="bloodGroup" type="text" name="bloodGroup" value={formData.details.bloodGroup} onChange={handleChange} placeholder="e.g. A+, O-, B+" />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
                     <label htmlFor="qualification">Qualification</label>
                     <input id="qualification" type="text" name="qualification" value={formData.details.qualification} onChange={handleChange} />
                   </div>
@@ -337,6 +345,7 @@ export default function MemberDrawer({ member, isOpen, onClose, onUpdate }) {
                 <div className="drawer-section-title">Life events</div>
                 <div className="info-grid">
                   {renderField('Date of birth', formData.details.dob)}
+                  {renderField('Blood Group', formData.details.bloodGroup)}
                   {renderField('Marriage date', formData.details.marriageDate)}
                   {renderField('Qualification', formData.details.qualification)}
                   {renderField('Profession', formData.details.profession)}

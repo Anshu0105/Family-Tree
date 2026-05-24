@@ -11,7 +11,7 @@ const {
 const MEMBER_UPDATE_FIELDS = ['name', 'nickname', 'gender', 'position'];
 const DETAIL_FIELDS = [
   'phone', 'email', 'address', 'dob', 'marriageDate',
-  'qualification', 'profession', 'dateOfDeath',
+  'qualification', 'profession', 'dateOfDeath', 'bloodGroup',
 ];
 
 function asyncHandler(fn) {
