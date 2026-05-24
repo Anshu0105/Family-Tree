@@ -111,6 +111,80 @@ export function buildFamilyGraph(members, focusId, callbacks = {}) {
   return { nodes: initialNodes, edges: initialEdges };
 }
 
+/**
+ * Assign a generation number (0 = oldest ancestor) to every node.
+ *
+ * Rules:
+ *  - Only edges whose source is a member OR marriage node going to a member
+ *    child (i.e. edge-parent / kind:'parent') are used to drive depth.
+ *  - Spouse edges are ignored — they are horizontal links, not depth links.
+ *  - Marriage nodes get the same generation as the lesser-generation of their
+ *    two connected member nodes (so they sit on the same row).
+ *
+ * @param {Array} nodes
+ * @param {Array} edges
+ * @returns {Map<string, number>} nodeId -> generation
+ */
+function assignGenerations(nodes, edges) {
+  // Only parent-child edges drive generation depth
+  const parentEdges = edges.filter((e) => e.data?.kind === 'parent');
+
+  // Build adjacency: parentId/marriageId -> [childId]
+  const childrenOf = new Map();
+  // Build reverse: childId -> [parentId/marriageId]
+  const parentsOf  = new Map();
+
+  nodes.forEach((n) => {
+    childrenOf.set(n.id, []);
+    parentsOf.set(n.id, []);
+  });
+
+  parentEdges.forEach((e) => {
+    childrenOf.get(e.source)?.push(e.target);
+    parentsOf.get(e.target)?.push(e.source);
+  });
+
+  // Roots = member nodes with no incoming parent edge
+  const memberNodes  = nodes.filter((n) => n.type === 'member');
+  const marriageNodes = nodes.filter((n) => n.type === 'marriage');
+
+  const generations = new Map();
+
+  // BFS from roots
+  const queue = [];
+  memberNodes.forEach((n) => {
+    if ((parentsOf.get(n.id) ?? []).length === 0) {
+      generations.set(n.id, 0);
+      queue.push(n.id);
+    }
+  });
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    const currentGen = generations.get(current);
+    (childrenOf.get(current) ?? []).forEach((childId) => {
+      if (!generations.has(childId)) {
+        generations.set(childId, currentGen + 1);
+        queue.push(childId);
+      }
+    });
+  }
+
+  // Any member node still unvisited (disconnected island) gets generation 0
+  memberNodes.forEach((n) => {
+    if (!generations.has(n.id)) generations.set(n.id, 0);
+  });
+
+  // Marriage nodes inherit the minimum generation of their two member nodes
+  marriageNodes.forEach((mn) => {
+    const leftGen  = generations.get(mn.data?.leftId)  ?? 0;
+    const rightGen = generations.get(mn.data?.rightId) ?? 0;
+    generations.set(mn.id, Math.min(leftGen, rightGen));
+  });
+
+  return generations;
+}
+
 export function getLayoutedElements(nodes, edges, direction = 'TB') {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
@@ -144,6 +218,30 @@ export function getLayoutedElements(nodes, edges, direction = 'TB') {
       ...node,
       position: { x: nodeWithPos.x - width / 2, y: nodeWithPos.y - height / 2 },
     };
+  });
+
+  // ── Generation Y-flattening pass ──────────────────────────────────────────
+  // Compute a generation number for every node, then snap all member nodes
+  // in the same generation to one shared Y so cousins/siblings align exactly.
+  // Marriage nodes are excluded here — their Y is fixed in the spouse
+  // alignment step that follows.
+  const generations = assignGenerations(nodes, edges);
+
+  // Group member nodes by generation
+  const genGroups = new Map(); // generation -> [node]
+  newNodes.forEach((node) => {
+    if (node.type !== 'member') return;
+    const gen = generations.get(node.id) ?? 0;
+    if (!genGroups.has(gen)) genGroups.set(gen, []);
+    genGroups.get(gen).push(node);
+  });
+
+  // For each generation, use the maximum Y assigned by dagre (TB layout:
+  // larger Y = further down = later generation visually) so that the
+  // entire row sits at the lowest point dagre chose for that generation.
+  genGroups.forEach((group) => {
+    const maxY = Math.max(...group.map((n) => n.position.y));
+    group.forEach((n) => { n.position.y = maxY; });
   });
 
   const finalNodes = [...newNodes];
