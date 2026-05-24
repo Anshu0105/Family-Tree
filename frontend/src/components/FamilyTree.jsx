@@ -189,7 +189,7 @@ function FamilyTreeCanvas({ onNodeClick, refreshKey }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_BASE}/tree/${activeNodeId}`);
+      const response = await axios.get(`${API_BASE}/tree/${activeNodeId}?depth=99`);
       const treeData = response.data;
       buildGraph(treeData, activeNodeId);
       setTimeout(() => {
@@ -297,12 +297,20 @@ function FamilyTreeCanvas({ onNodeClick, refreshKey }) {
     searchInputRef.current?.blur();
   };
 
+  // Single-click: focus the node and reload the subtree (via activeNodeId useEffect).
+  // Does NOT open the drawer — that is reserved for double-click.
   const handleNodeSelect = useCallback((event, node) => {
-      if (node.type === 'member') {
-        setActiveNodeId(node.id);
-        if (node.data?.name) setActiveMemberName(node.data.name);
-        onNodeClick?.(node.data);
-      }
+    if (node.type === 'member') {
+      setActiveNodeId(node.id);
+      if (node.data?.name) setActiveMemberName(node.data.name);
+    }
+  }, []);
+
+  // Double-click: open the MemberDrawer for the clicked node.
+  const handleNodeDoubleClick = useCallback((event, node) => {
+    if (node.type === 'member') {
+      onNodeClick?.(node.data);
+    }
   }, [onNodeClick]);
 
   useEffect(() => {
@@ -394,7 +402,7 @@ function FamilyTreeCanvas({ onNodeClick, refreshKey }) {
         </div>
         <div>
           <h1>Family Tree</h1>
-          <span>Click a member to view · Press / to search</span>
+          <span>Double-click a member to view details · Press / to search</span>
         </div>
       </div>
 
@@ -442,6 +450,7 @@ function FamilyTreeCanvas({ onNodeClick, refreshKey }) {
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onNodeClick={handleNodeSelect}
+        onNodeDoubleClick={handleNodeDoubleClick}
         defaultEdgeOptions={{ type: 'curve', zIndex: 0 }}
         connectionLineType="bezier"
         elevateEdgesOnSelect
