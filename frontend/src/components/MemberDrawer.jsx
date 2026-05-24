@@ -62,8 +62,18 @@ export default function MemberDrawer({ member, isOpen, onClose, onUpdate }) {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
+  const [photoFile, setPhotoFile] = useState(null);   // eslint-disable-line no-unused-vars
+  const [photoPreview, setPhotoPreview] = useState(null);
   const drawerRef = useRef(null);
   const previousFocusRef = useRef(null);
+  const photoInputRef = useRef(null);
+
+  // Map gender to the same accent colours used in MemberNode
+  const GENDER_COLORS = {
+    Male:   { ring: '#3b82f6', bg: '#2563eb' },
+    Female: { ring: '#ec4899', bg: '#be185d' },
+  };
+  const DEFAULT_COLORS = { ring: '#9ca3af', bg: '#6b7280' };
 
   useEffect(() => {
     if (member) {
@@ -71,6 +81,12 @@ export default function MemberDrawer({ member, isOpen, onClose, onUpdate }) {
       setIsEditing(false);
       setSaveSuccess(false);
       setSaveError(null);
+      // Reset photo preview when switching members
+      setPhotoFile(null);
+      setPhotoPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
     }
   }, [member?._id, isOpen]);
 
@@ -157,6 +173,18 @@ export default function MemberDrawer({ member, isOpen, onClose, onUpdate }) {
     setIsEditing(false);
   }, [member]);
 
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Revoke previous object URL to avoid memory leaks
+    setPhotoPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+    setPhotoFile(file);
+    // TODO: upload photoFile to backend when storage is configured
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setSaveError(null);
@@ -210,7 +238,44 @@ export default function MemberDrawer({ member, isOpen, onClose, onUpdate }) {
         <div className="drawer-profile">
           <div className="drawer-profile-top">
             <div className="drawer-profile-row">
-              <div className={`drawer-avatar ${gClass}`}>{getInitials(formData.name)}</div>
+              {/* ── Photo upload avatar ─────────────────────────── */}
+              <div className="drawer-photo-upload">
+                <div
+                  className="drawer-photo-circle"
+                  style={{
+                    borderColor: (GENDER_COLORS[formData.gender] || DEFAULT_COLORS).ring,
+                    background:  photoPreview ? 'transparent' : (GENDER_COLORS[formData.gender] || DEFAULT_COLORS).bg,
+                  }}
+                >
+                  {photoPreview ? (
+                    <img
+                      src={photoPreview}
+                      alt={`${formData.name || 'Member'} photo`}
+                      className="drawer-photo-img"
+                    />
+                  ) : (
+                    <span style={{ color: '#fff', fontSize: 26, fontWeight: 700, lineHeight: 1 }}>
+                      {getInitials(formData.name)}
+                    </span>
+                  )}
+                </div>
+                {/* Hidden file input */}
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  aria-label="Upload member photo"
+                  onChange={handlePhotoChange}
+                />
+                <button
+                  type="button"
+                  className="drawer-photo-btn"
+                  onClick={() => photoInputRef.current?.click()}
+                >
+                  {photoPreview ? 'Change Photo' : 'Upload Photo'}
+                </button>
+              </div>
               <div className="drawer-profile-info">
                 <h2 id="drawer-member-name">{formData.name || 'Unknown'}</h2>
                 {formData.nickname && <div className="drawer-nickname">{formData.nickname}</div>}
